@@ -1,0 +1,846 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0d6efd">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="حسابي">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>حسابي</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Arabic:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: plan-sheet workspace. Side rail (bottom bar on phones), ruled sheet cards, tape-measure ticks on every grand total. */
+:root{
+  --bg:#E9EDEF; --surface:#F7F9FA; --surface2:#E1E7EA; --field:#FFFFFF;
+  --ink:#14202B; --ink2:#51606B; --line:#C5CED4;
+  --primary:#14202B; --primary-ink:#F7F9FA;
+  --accent:#F2B705; --accent-ink:#14202B;
+  --focus:#1B5FD1; --danger:#B3261E; --danger-bg:#B3261E; --on-danger:#FFFFFF;
+  --paper:#FFFFFF; --paper-ink:#14202B; --paper-mute:#5A6772; --paper-line:#D5DCE0;
+  --display:'Barlow Condensed','IBM Plex Sans Arabic','Arial Narrow',sans-serif;
+  --body:'IBM Plex Sans','IBM Plex Sans Arabic',system-ui,-apple-system,'Segoe UI',Tahoma,sans-serif;
+  --mono:'IBM Plex Mono','IBM Plex Sans Arabic',ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E151B; --surface:#16202A; --surface2:#1F2B36; --field:#0E151B;
+  --ink:#E6ECEF; --ink2:#93A1AC; --line:#2B3946;
+  --primary:#E6ECEF; --primary-ink:#0E151B; --accent:#F2B705; --accent-ink:#14202B;
+  --focus:#6CA8FF; --danger:#F2857D; --danger-bg:#F2857D; --on-danger:#1A0B0A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E151B; --surface:#16202A; --surface2:#1F2B36; --field:#0E151B;
+  --ink:#E6ECEF; --ink2:#93A1AC; --line:#2B3946;
+  --primary:#E6ECEF; --primary-ink:#0E151B; --accent:#F2B705; --accent-ink:#14202B;
+  --focus:#6CA8FF; --danger:#F2857D; --danger-bg:#F2857D; --on-danger:#1A0B0A; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--body);
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
+h1,h2,h3,p{margin:0}
+button,input,select,textarea{font:inherit}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.muted{color:var(--ink2)}
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums}
+
+.shell{display:grid;grid-template-columns:208px minmax(0,1fr);gap:28px;max-width:1240px;margin:0 auto;padding-block:16px 48px}
+.nav{position:sticky;top:16px;align-self:start;display:flex;flex-direction:column;gap:4px}
+.brand{padding:4px 12px 14px}
+.brand b{display:block;font:700 34px/1 var(--display);letter-spacing:.01em}
+.brand span{display:block;color:var(--ink2);font-size:12px;margin-top:4px}
+.tape{height:12px;color:var(--ink);background-image:linear-gradient(90deg,currentColor 1px,transparent 1px),linear-gradient(90deg,currentColor 1px,transparent 1px);background-size:30px 12px,6px 6px;background-repeat:repeat-x;background-position:0 100%}
+.brand .tape{margin-top:10px;width:100%}
+.nbtn{display:flex;align-items:center;gap:10px;padding:10px 12px;border:0;background:transparent;color:var(--ink2);font-weight:500;border-radius:5px;cursor:pointer;text-align:start}
+.nbtn:hover{background:var(--surface2);color:var(--ink)}
+.nbtn[aria-current="page"]{background:var(--primary);color:var(--primary-ink)}
+.nbtn svg,.icon svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex:none}
+
+.main{min-width:0;display:flex;flex-direction:column;gap:16px}
+.topbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+.topbar h1{font:600 34px/1.05 var(--display);text-transform:uppercase;letter-spacing:.03em;text-wrap:balance}
+.tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:5px;overflow:hidden;background:var(--surface)}
+.seg button{border:0;background:transparent;color:var(--ink2);padding:7px 11px;font-weight:600;cursor:pointer;font-size:13px}
+.seg button[aria-pressed="true"]{background:var(--primary);color:var(--primary-ink)}
+
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px}
+.pad{padding:16px}
+.btn{border:1px solid var(--primary);background:var(--primary);color:var(--primary-ink);padding:9px 14px;border-radius:5px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:8px;justify-content:center}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--ink2)}
+.btn.accent{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.small{padding:5px 10px;font-size:13px}
+.btn.danger{background:transparent;color:var(--danger);border-color:var(--line)}
+.btn.armed{background:var(--danger-bg);border-color:var(--danger-bg);color:var(--on-danger)}
+.icon{border:1px solid var(--line);background:var(--field);color:var(--ink);width:36px;height:38px;border-radius:4px;display:inline-grid;place-items:center;cursor:pointer;padding:0;flex:none}
+.icon:hover{border-color:var(--ink2)}
+
+label.f{display:flex;flex-direction:column;gap:4px;min-width:0}
+.lbl,label.f>span{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
+input,select,textarea{color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:4px;padding:8px 10px;width:100%;min-width:0}
+textarea{resize:vertical;min-height:72px}
+input.num{font-family:var(--mono);text-align:end}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+
+.pcards{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+.pcard{display:flex;flex-direction:column;gap:10px;padding:16px}
+.pcard h3{font:600 24px/1.1 var(--display);text-wrap:balance}
+.pill{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--line);border-radius:3px;padding:2px 7px;color:var(--ink2)}
+.pill.inv{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row.sb{justify-content:space-between}
+.big{font:600 28px/1 var(--display);font-variant-numeric:tabular-nums}
+
+.phead{display:flex;flex-direction:column;gap:14px;padding:16px}
+.gt{display:flex;flex-direction:column;align-items:flex-end;gap:2px;min-width:0}
+.gt .big{font-size:38px}
+.floor{overflow:hidden}
+.fhead{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:12px 16px;background:var(--surface2);border-bottom:1px solid var(--line)}
+.fhead input.title{font:600 24px/1.1 var(--display);text-transform:uppercase;letter-spacing:.03em;border-color:transparent;background:transparent;flex:1 1 160px;padding:4px 6px}
+.fhead input.title:hover,.fhead input.title:focus{border-color:var(--line);background:var(--field)}
+.sub{font:600 20px var(--display);font-variant-numeric:tabular-nums;white-space:nowrap}
+.rooms{display:flex;flex-direction:column;gap:14px;padding:14px}
+.room{border:1px solid var(--line);border-radius:5px;background:var(--surface)}
+.rhead{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:8px 12px}
+.rhead input.title{font-weight:600;font-size:16px;border-color:transparent;background:transparent;flex:1 1 140px;padding:4px 6px}
+.rhead input.title:hover,.rhead input.title:focus{border-color:var(--line);background:var(--field)}
+.linehead,.line{display:grid;grid-template-columns:minmax(0,1fr) 132px 96px 116px 124px 36px;gap:8px;align-items:end}
+.linehead{padding:6px 12px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2);border-top:1px solid var(--line)}
+.linehead span:nth-child(4),.linehead span:nth-child(5){text-align:end}
+.line{padding:8px 12px;border-top:1px solid var(--line)}
+.line .lbl{display:none}
+.qtybox{display:flex;gap:4px}
+.c-tot{text-align:end;font-weight:600;padding-block:9px;white-space:nowrap}
+.empty{padding:16px 12px;color:var(--ink2);border-top:1px solid var(--line)}
+.ractions{display:flex;gap:8px;flex-wrap:wrap;padding:10px 12px;border-top:1px solid var(--line)}
+.pickpanel{border-top:1px solid var(--line);padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:var(--bg)}
+.picklist{display:flex;flex-direction:column;max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:4px;background:var(--field)}
+.pick{display:flex;justify-content:space-between;gap:12px;align-items:center;text-align:start;border:0;border-bottom:1px solid var(--line);background:transparent;color:var(--ink);padding:9px 12px;cursor:pointer}
+.pick:last-child{border-bottom:0}
+.pick:hover{background:var(--surface2)}
+.pick .mono{font-size:13px;white-space:nowrap}
+.floorfoot{display:flex;flex-wrap:wrap;gap:8px;padding:0 14px 14px}
+
+.totals{align-self:flex-end;width:min(440px,100%);display:flex;flex-direction:column}
+.trow{display:grid;grid-template-columns:1fr 96px 140px;gap:10px;align-items:center;padding:8px 16px;border-bottom:1px solid var(--line)}
+.trow .v{text-align:end;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.trow input{padding:5px 8px}
+.grand{background:var(--accent);color:var(--accent-ink);border-bottom:0;padding:14px 16px}
+.grand .v{font:700 26px var(--display)}
+.grand span:first-child{font:600 20px var(--display);text-transform:uppercase;letter-spacing:.04em}
+.totals .tape{color:var(--accent-ink);background-color:var(--accent)}
+
+.crow{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) 92px 130px 36px;gap:8px;align-items:end;padding:8px 12px;border-top:1px solid var(--line)}
+.crow:first-child{border-top:0}
+.crow label.f>span{display:none}
+.chead{padding:6px 12px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--ink2)}
+
+.sheet{background:var(--paper);color:var(--paper-ink);border:1px solid var(--paper-line);border-radius:4px;padding:32px;max-width:900px;width:100%}
+.sheet h2{font:700 40px/1 var(--display);text-transform:uppercase;letter-spacing:.04em}
+.sheet .mute{color:var(--paper-mute)}
+.shead{display:flex;flex-wrap:wrap;justify-content:space-between;gap:20px}
+.shead>div{min-width:0}
+.sheet .tape{color:var(--paper-ink);margin-block:16px 12px}
+.meta{display:grid;grid-template-columns:auto 1fr;gap:2px 14px;margin-top:8px}
+.meta dt{color:var(--paper-mute)}.meta dd{margin:0;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.pre{white-space:pre-line}
+.twrap{overflow-x:auto;margin-top:18px}
+table.inv{width:100%;border-collapse:collapse;min-width:640px;table-layout:auto}
+table.inv th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--paper-mute);text-align:start;padding:6px 8px;border-bottom:2px solid var(--paper-ink)}
+table.inv td{padding:6px 8px;border-bottom:1px solid var(--paper-line);vertical-align:top}
+table.inv .r{direction:ltr;unicode-bidi:isolate;text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;padding-inline:10px}
+table.inv th.r{font-family:var(--body)}
+table.inv td.u{white-space:nowrap;width:1%;padding-inline:10px}
+table.inv td:first-child{min-width:170px}
+table.inv tr.fl td{font:600 20px var(--display);text-transform:uppercase;letter-spacing:.03em;padding-top:16px;border-bottom:2px solid var(--paper-ink)}
+table.inv tr.rm td{font-weight:600;background:#EEF2F4;color:#14202B}
+table.inv tr.st td{font-weight:600}
+table.inv tr.fs td{font-weight:700;border-bottom:2px solid var(--paper-ink)}
+.itotals{margin-inline-start:auto;width:min(360px,100%);margin-top:14px}
+.itotals div{display:flex;justify-content:space-between;gap:16px;padding:5px 8px;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.itotals div span:last-child{direction:ltr;unicode-bidi:isolate;text-align:right;white-space:nowrap}
+.itotals div span:first-child{font-family:var(--body)}
+.sub,.big,.trow .v,.c-tot .mono,.pick .mono,.pcard .big,.result b{direction:ltr;unicode-bidi:isolate}
+.itotals .g{background:#F2B705;color:#14202B;font:700 24px var(--display);padding:10px 8px;margin-top:6px}
+.terms{margin-top:22px;font-size:13px;color:var(--paper-mute)}
+
+.modal{position:fixed;inset:0;z-index:50;background:rgba(10,16,22,.62);display:grid;place-items:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.panel{width:min(520px,100%);max-height:100%;overflow:auto;padding:18px;display:flex;flex-direction:column;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:6px}
+.panel h2{font:600 28px/1 var(--display);text-transform:uppercase;letter-spacing:.03em}
+.result{background:var(--accent);color:var(--accent-ink);padding:12px 14px;border-radius:4px;display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.result b{font:700 36px/1 var(--display);font-variant-numeric:tabular-nums}
+.hint{font-size:13px;color:var(--ink2)}
+.banner{border:1px solid var(--danger);color:var(--danger);padding:10px 14px;border-radius:5px;background:var(--surface)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(24px + env(safe-area-inset-bottom,0px));background:var(--primary);color:var(--primary-ink);padding:9px 16px;border-radius:5px;z-index:60;font-weight:600}
+.sect{display:flex;flex-direction:column;gap:12px;padding:16px}
+.sect h3{font:600 22px var(--display);text-transform:uppercase;letter-spacing:.03em}
+
+[dir="rtl"] *{letter-spacing:0!important}
+[dir="rtl"] .topbar h1,[dir="rtl"] .fhead input.title,[dir="rtl"] .sheet h2,[dir="rtl"] .sect h3,[dir="rtl"] .panel h2,[dir="rtl"] table.inv tr.fl td,[dir="rtl"] .lbl,[dir="rtl"] label.f>span,[dir="rtl"] .linehead,[dir="rtl"] .chead,[dir="rtl"] .pill,[dir="rtl"] table.inv th,[dir="rtl"] .grand span:first-child{text-transform:none}
+[dir="rtl"] .topbar h1,[dir="rtl"] .fhead input.title{font-weight:700}
+
+@media (max-width:820px){
+  .shell{grid-template-columns:minmax(0,1fr);gap:12px;padding-bottom:96px}
+  .nav{position:fixed;left:0;right:0;bottom:0;top:auto;flex-direction:row;gap:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
+    padding:6px max(6px,env(safe-area-inset-right,0px)) calc(6px + env(safe-area-inset-bottom,0px)) max(6px,env(safe-area-inset-left,0px))}
+  .brand{display:none}
+  .nbtn{flex:1;flex-direction:column;gap:2px;padding:6px 2px;font-size:11px;align-items:center;text-align:center;min-width:0}
+  .toast{bottom:calc(88px + env(safe-area-inset-bottom,0px))}
+  .topbar h1{font-size:28px}
+}
+@media (max-width:700px){
+  .linehead{display:none}
+  .line{grid-template-columns:repeat(3,minmax(0,1fr)) 36px;gap:8px 8px}
+  .line .lbl{display:block}
+  .c-desc{grid-column:1/4}.c-del{grid-column:4;grid-row:1}
+  .c-qty{grid-column:1}.c-unit{grid-column:2}.c-rate{grid-column:3}
+  .c-tot{grid-column:1/-1;display:flex;justify-content:space-between;align-items:baseline;border-top:1px dashed var(--line);padding-block:6px 0}
+  .crow{grid-template-columns:repeat(3,minmax(0,1fr)) 36px}
+  .crow label.f>span{display:block}
+  .crow .cn{grid-column:1/4}.crow .cd{grid-column:4;grid-row:1}
+  .chead{display:none}
+  .trow{grid-template-columns:1fr 84px 1fr}
+  .sheet{padding:18px}
+  .gt{align-items:flex-start}
+}
+@media print{
+  .nav,.topbar,.noprint,.toast,.modal{display:none!important}
+  body{background:#fff;padding:0}
+  .shell{display:block;padding:0}
+  .sheet{border:0;padding:0;max-width:none}
+  .itotals .g,table.inv tr.rm td{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+(function(){
+'use strict';
+
+//#PURE-START
+const r2=x=>Math.round((x+Number.EPSILON)*100)/100;
+const r3=x=>Math.round((x+Number.EPSILON)*1000)/1000;
+function pn(v){
+  if(typeof v==='number')return isFinite(v)?v:0;
+  const s=String(v==null?'':v).replace(/[٠-٩]/g,d=>String(d.charCodeAt(0)-0x660)).replace(/٫/g,'.').replace(/٬/g,'').replace(',','.').replace(/[^0-9.\-]/g,'');
+  const n=parseFloat(s);return isFinite(n)?n:0;
+}
+function compute(p){
+  let sub=0;
+  const floors=p.floors.map(f=>{
+    let fs=0;
+    const rooms=f.rooms.map(r=>{
+      let rs=0;
+      const items=r.items.map(i=>{const t=r2(pn(i.qty)*pn(i.rate));rs+=t;return t;});
+      rs=r2(rs);fs+=rs;return {id:r.id,sub:rs,items};
+    });
+    fs=r2(fs);sub+=fs;return {id:f.id,sub:fs,rooms};
+  });
+  sub=r2(sub);
+  const disc=r2(sub*pn(p.discount)/100), net=r2(sub-disc);
+  return {floors,sub,disc,net,tax:0,grand:net};
+}
+const CALC={
+  rect:{u:'m2',f:v=>pn(v.l)*pn(v.w)},
+  walls:{u:'m2',f:v=>Math.max(0,2*(pn(v.l)+pn(v.w))*pn(v.h)-pn(v.o))},
+  circle:{u:'m2',f:v=>Math.PI*Math.pow(pn(v.d)/2,2)},
+  circ:{u:'ml',f:v=>Math.PI*pn(v.d)},
+  tri:{u:'m2',f:v=>pn(v.b)*pn(v.h)/2},
+  perim:{u:'ml',f:v=>2*(pn(v.l)+pn(v.w))},
+  seg:{u:'ml',f:v=>String(v.s||'').split(/[+;\s]+/).reduce((a,x)=>a+pn(x),0)},
+  vol:{u:'m3',f:v=>pn(v.l)*pn(v.w)*pn(v.h)}
+};
+const CALC_FIELDS={rect:['l','w'],walls:['l','w','h','o'],circle:['d'],circ:['d'],tri:['b','h'],perim:['l','w'],seg:['s'],vol:['l','w','h']};
+function calcResult(mode,v,waste,count){
+  const c=CALC[mode];const n=pn(count)>0?pn(count):1;
+  return {unit:c.u,value:r3(c.f(v||{})*n*(1+Math.max(0,pn(waste))/100))};
+}
+//#PURE-END
+
+const UNITS=['m2','ml','m3','u','day','h','kg','lot'];
+const FRAMED=(function(){try{return window.self!==window.top}catch(e){return true}})();
+const ROOT=document.documentElement;
+const HOST_THEME=ROOT.getAttribute('data-theme');
+
+const I18N={
+en:{
+brand_sub:'Estimates and invoices for the trade',
+nav_projects:'Projects',nav_estimate:'Estimate',nav_catalog:'Catalog',nav_invoice:'Invoice',nav_settings:'Settings',
+calculators:'Calculators',new_project:'New project',open:'Open',duplicate:'Duplicate',del:'Delete',del_confirm:'Tap again to delete',cancel:'Cancel',close:'Close',
+no_projects:'No projects yet. Create your first estimate.',example_tag:'Example',
+project_name:'Project name',client:'Client',address:'Site address',date:'Date',doc_type:'Document',estimate:'Estimate',invoice:'Invoice',number:'No.',notes:'Notes',
+floor:'Floor',room:'Room',add_floor:'Add floor',add_room:'Add room',from_catalog:'From catalog',custom_line:'Custom line',
+search_services:'Search services',no_match:'No matching service.',
+description:'Description',qty:'Qty',unit:'Unit',rate:'Unit rate',amount:'Amount',
+room_sub:'Room subtotal',floor_sub:'Floor subtotal',subtotal:'Subtotal',discount:'Discount %',vat:'VAT %',discount_amt:'Discount',net:'Net before VAT',vat_amt:'VAT',grand:'Grand total',
+ground_floor:'Ground floor',floor_n:'Floor {n}',room_n:'Room {n}',
+sample_name:'Example: 3-room apartment',sample_client:'Sample client',
+empty_room:'No lines yet. Add a service from your catalog or enter a custom line.',
+no_project_sel:'Open or create a project to start estimating.',go_projects:'Go to projects',
+catalog_title:'Service catalog',new_service:'New service',service_name:'Service',category:'Category',
+catalog_hint:'Rates are per unit. They are copied into a project line when you add the service, so changing a price later never alters past quotes.',no_services:'Your catalog is empty.',
+cat_finish:'Finishing',cat_tiling:'Tiling',cat_structure:'Structure',cat_electric:'Electrical',cat_plumbing:'Plumbing',cat_labour:'Labour',
+calc_title:'Measurement calculators',mode:'Shape',m_rect:'Floor or ceiling area',m_walls:'Wall area',m_circle:'Circle area',m_circ:'Circle circumference',m_tri:'Triangle area',m_perim:'Rectangle perimeter',m_seg:'Sum of lengths',m_vol:'Volume',
+f_l:'Length (m)',f_w:'Width (m)',f_h:'Height (m)',f_o:'Openings: doors, windows (m²)',f_d:'Diameter (m)',f_b:'Base (m)',f_s:'Lengths in metres, separated by + or spaces',
+waste:'Waste %',times:'Repeat ×',result:'Result',use_qty:'Use as quantity',copy:'Copy',copied:'Copied',walls_hint:'Walls = perimeter × height − openings.',
+settings_title:'Settings',business:'Your business',business_name:'Business name',business_info:'Address, phone, tax ID',currency:'Currency',currency_hint:'Changing the currency does not convert existing rates.',
+language:'Language',theme:'Appearance',theme_auto:'Match device',theme_light:'Light',theme_dark:'Dark',default_vat:'Default VAT % for new projects',terms:'Payment terms',terms_default:'Payable within 30 days of the invoice date.',
+backup:'Backup',backup_hint:'All data stays in this browser. Export a copy regularly.',export_json:'Export backup',export_copied:'Backup copied to clipboard',import_json:'Import backup file',import_paste:'Or paste a backup here',import_btn:'Import',import_ok:'Backup imported',import_err:'This is not a valid backup.',reset:'Erase all data',
+storage_err:'Browser storage is unavailable. Changes will be lost when you close this tab.',
+bill_to:'Bill to',from:'From',detailed:'Detailed',rooms_only:'Rooms only',copy_text:'Copy as text',print:'Print or save PDF',site:'Site',
+pre_est:'EST',pre_inv:'INV',
+u_m2:'m²',u_ml:'lm',u_m3:'m³',u_u:'pc',u_day:'day',u_h:'h',u_kg:'kg',u_lot:'lot'},
+fr:{
+brand_sub:'Devis et factures pour les artisans',
+nav_projects:'Projets',nav_estimate:'Devis',nav_catalog:'Catalogue',nav_invoice:'Facture',nav_settings:'Réglages',
+calculators:'Calculettes',new_project:'Nouveau projet',open:'Ouvrir',duplicate:'Dupliquer',del:'Supprimer',del_confirm:'Touchez encore pour supprimer',cancel:'Annuler',close:'Fermer',
+no_projects:'Aucun projet pour le moment. Créez votre premier devis.',example_tag:'Exemple',
+project_name:'Nom du projet',client:'Client',address:'Adresse du chantier',date:'Date',doc_type:'Document',estimate:'Devis',invoice:'Facture',number:'N°',notes:'Notes',
+floor:'Étage',room:'Pièce',add_floor:'Ajouter un étage',add_room:'Ajouter une pièce',from_catalog:'Depuis le catalogue',custom_line:'Ligne libre',
+search_services:'Rechercher une prestation',no_match:'Aucune prestation trouvée.',
+description:'Désignation',qty:'Qté',unit:'Unité',rate:'Prix unitaire',amount:'Montant',
+room_sub:'Sous-total pièce',floor_sub:'Sous-total étage',subtotal:'Sous-total',discount:'Remise %',vat:'TVA %',discount_amt:'Remise',net:'Net HT',vat_amt:'TVA',grand:'Total TTC',
+ground_floor:'Rez-de-chaussée',floor_n:'Étage {n}',room_n:'Pièce {n}',
+sample_name:'Exemple : appartement F3',sample_client:'Client exemple',
+empty_room:'Aucune ligne. Ajoutez une prestation du catalogue ou saisissez une ligne libre.',
+no_project_sel:'Ouvrez ou créez un projet pour commencer le chiffrage.',go_projects:'Voir les projets',
+catalog_title:'Catalogue de prestations',new_service:'Nouvelle prestation',service_name:'Prestation',category:'Catégorie',
+catalog_hint:'Les prix sont à l’unité. Ils sont copiés dans la ligne du projet à l’ajout, donc modifier un prix plus tard ne change jamais les devis passés.',no_services:'Votre catalogue est vide.',
+cat_finish:'Finitions',cat_tiling:'Carrelage',cat_structure:'Gros œuvre',cat_electric:'Électricité',cat_plumbing:'Plomberie',cat_labour:'Main-d’œuvre',
+calc_title:'Calculettes de métré',mode:'Forme',m_rect:'Surface sol ou plafond',m_walls:'Surface des murs',m_circle:'Surface d’un cercle',m_circ:'Circonférence',m_tri:'Surface d’un triangle',m_perim:'Périmètre d’un rectangle',m_seg:'Somme de longueurs',m_vol:'Volume',
+f_l:'Longueur (m)',f_w:'Largeur (m)',f_h:'Hauteur (m)',f_o:'Ouvertures : portes, fenêtres (m²)',f_d:'Diamètre (m)',f_b:'Base (m)',f_s:'Longueurs en mètres, séparées par + ou espaces',
+waste:'Chutes %',times:'Répéter ×',result:'Résultat',use_qty:'Utiliser comme quantité',copy:'Copier',copied:'Copié',walls_hint:'Murs = périmètre × hauteur − ouvertures.',
+settings_title:'Réglages',business:'Votre entreprise',business_name:'Nom de l’entreprise',business_info:'Adresse, téléphone, n° fiscal',currency:'Devise',currency_hint:'Changer de devise ne convertit pas les prix existants.',
+language:'Langue',theme:'Apparence',theme_auto:'Selon l’appareil',theme_light:'Clair',theme_dark:'Sombre',default_vat:'TVA % par défaut des nouveaux projets',terms:'Conditions de paiement',terms_default:'Payable sous 30 jours à compter de la date de facture.',
+backup:'Sauvegarde',backup_hint:'Toutes les données restent dans ce navigateur. Exportez une copie régulièrement.',export_json:'Exporter la sauvegarde',export_copied:'Sauvegarde copiée dans le presse-papiers',import_json:'Importer un fichier de sauvegarde',import_paste:'Ou collez une sauvegarde ici',import_btn:'Importer',import_ok:'Sauvegarde importée',import_err:'Sauvegarde invalide.',reset:'Effacer toutes les données',
+storage_err:'Le stockage du navigateur est indisponible. Les modifications seront perdues à la fermeture de l’onglet.',
+bill_to:'Facturé à',from:'De',detailed:'Détaillé',rooms_only:'Pièces seulement',copy_text:'Copier en texte',print:'Imprimer ou enregistrer en PDF',site:'Chantier',
+pre_est:'DEV',pre_inv:'FAC',
+u_m2:'m²',u_ml:'ml',u_m3:'m³',u_u:'u',u_day:'jour',u_h:'h',u_kg:'kg',u_lot:'forfait'},
+ar:{
+brand_sub:'عروض أسعار وفواتير للحرفيين',
+nav_projects:'المشاريع',nav_estimate:'التقدير',nav_catalog:'الكتالوج',nav_invoice:'الفاتورة',nav_settings:'الإعدادات',
+calculators:'الحاسبات',new_project:'مشروع جديد',open:'فتح',duplicate:'نسخ',del:'حذف',del_confirm:'اضغط مرة أخرى للحذف',cancel:'إلغاء',close:'إغلاق',
+no_projects:'لا توجد مشاريع بعد. أنشئ أول تقدير لك.',example_tag:'مثال',
+project_name:'اسم المشروع',client:'الزبون',address:'عنوان الورشة',date:'التاريخ',doc_type:'المستند',estimate:'عرض سعر',invoice:'فاتورة',number:'الرقم',notes:'ملاحظات',
+floor:'الطابق',room:'الغرفة',add_floor:'إضافة طابق',add_room:'إضافة غرفة',from_catalog:'من الكتالوج',custom_line:'بند مخصص',
+search_services:'ابحث عن خدمة',no_match:'لا توجد خدمة مطابقة.',
+description:'الوصف',qty:'الكمية',unit:'الوحدة',rate:'سعر الوحدة',amount:'المبلغ',
+room_sub:'مجموع الغرفة',floor_sub:'مجموع الطابق',subtotal:'المجموع الفرعي',discount:'تخفيض %',vat:'TVA %',discount_amt:'التخفيض',net:'الصافي قبل الضريبة',vat_amt:'الضريبة',grand:'المجموع الكلي',
+ground_floor:'الطابق الأرضي',floor_n:'الطابق {n}',room_n:'الغرفة {n}',
+sample_name:'مثال: شقة بثلاث غرف',sample_client:'زبون تجريبي',
+empty_room:'لا توجد بنود بعد. أضف خدمة من الكتالوج أو أدخل بنداً مخصصاً.',
+no_project_sel:'افتح مشروعاً أو أنشئ واحداً لبدء التقدير.',go_projects:'الذهاب إلى المشاريع',
+catalog_title:'كتالوج الخدمات',new_service:'خدمة جديدة',service_name:'الخدمة',category:'الفئة',
+catalog_hint:'الأسعار لكل وحدة، وتُنسخ إلى بند المشروع عند إضافة الخدمة، فلا تتغير العروض السابقة عند تعديل الأسعار لاحقاً.',no_services:'الكتالوج فارغ.',
+cat_finish:'التشطيبات',cat_tiling:'البلاط',cat_structure:'الأشغال الكبرى',cat_electric:'الكهرباء',cat_plumbing:'السباكة',cat_labour:'اليد العاملة',
+calc_title:'حاسبات القياس',mode:'الشكل',m_rect:'مساحة أرضية أو سقف',m_walls:'مساحة الجدران',m_circle:'مساحة دائرة',m_circ:'محيط دائرة',m_tri:'مساحة مثلث',m_perim:'محيط مستطيل',m_seg:'مجموع أطوال',m_vol:'الحجم',
+f_l:'الطول (م)',f_w:'العرض (م)',f_h:'الارتفاع (م)',f_o:'الفتحات: أبواب ونوافذ (م²)',f_d:'القطر (م)',f_b:'القاعدة (م)',f_s:'الأطوال بالمتر، مفصولة بـ + أو مسافة',
+waste:'نسبة الهدر %',times:'التكرار ×',result:'النتيجة',use_qty:'استعمل ككمية',copy:'نسخ',copied:'تم النسخ',walls_hint:'الجدران = المحيط × الارتفاع − الفتحات.',
+settings_title:'الإعدادات',business:'نشاطك',business_name:'اسم النشاط',business_info:'العنوان، الهاتف، الرقم الجبائي',currency:'العملة',currency_hint:'تغيير العملة لا يحوّل الأسعار الموجودة.',
+language:'اللغة',theme:'المظهر',theme_auto:'حسب الجهاز',theme_light:'فاتح',theme_dark:'داكن',default_vat:'TVA % الافتراضية للمشاريع الجديدة',terms:'شروط الدفع',terms_default:'الدفع خلال 30 يوماً من تاريخ الفاتورة.',
+backup:'النسخ الاحتياطي',backup_hint:'جميع البيانات تبقى في هذا المتصفح. صدّر نسخة بانتظام.',export_json:'تصدير نسخة احتياطية',export_copied:'تم نسخ النسخة الاحتياطية',import_json:'استيراد ملف نسخة احتياطية',import_paste:'أو الصق النسخة هنا',import_btn:'استيراد',import_ok:'تم الاستيراد',import_err:'النسخة الاحتياطية غير صالحة.',reset:'مسح كل البيانات',
+storage_err:'تخزين المتصفح غير متاح. ستضيع التغييرات عند إغلاق هذه الصفحة.',
+bill_to:'الفاتورة إلى',from:'من',detailed:'مفصّل',rooms_only:'الغرف فقط',copy_text:'نسخ كنص',print:'طباعة أو حفظ PDF',site:'الورشة',
+pre_est:'EST',pre_inv:'INV',
+u_m2:'م²',u_ml:'م.ط',u_m3:'م³',u_u:'وحدة',u_day:'يوم',u_h:'ساعة',u_kg:'كغ',u_lot:'جزافي'}
+};
+
+const SEED=[
+ {id:'s-paint',u:'m2',rate:450,cat:'finish',n:{en:'Wall painting, 2 coats',fr:'Peinture murs, 2 couches',ar:'دهان الجدران، طبقتان'}},
+ {id:'s-ceil',u:'m2',rate:500,cat:'finish',n:{en:'Ceiling painting',fr:'Peinture plafond',ar:'دهان السقف'}},
+ {id:'s-skim',u:'m2',rate:350,cat:'finish',n:{en:'Plaster skim coat',fr:'Enduit de lissage',ar:'معجون وتسوية الجدران'}},
+ {id:'s-board',u:'m2',rate:1800,cat:'finish',n:{en:'Plasterboard false ceiling',fr:'Faux plafond BA13',ar:'سقف مستعار من الجبس'}},
+ {id:'s-skirt',u:'ml',rate:250,cat:'finish',n:{en:'Skirting board',fr:'Plinthe',ar:'إفريز الأرضية'}},
+ {id:'s-ftile',u:'m2',rate:1400,cat:'tiling',n:{en:'Floor tiling, labour',fr:'Pose carrelage sol',ar:'تركيب بلاط الأرضية'}},
+ {id:'s-wtile',u:'m2',rate:1600,cat:'tiling',n:{en:'Wall tiling, labour',fr:'Pose faïence murale',ar:'تركيب الفيانص الجداري'}},
+ {id:'s-screed',u:'m2',rate:900,cat:'structure',n:{en:'Cement screed',fr:'Chape ciment',ar:'تسوية الأرضية بالإسمنت'}},
+ {id:'s-demo',u:'m2',rate:700,cat:'structure',n:{en:'Demolition and removal',fr:'Démolition et évacuation',ar:'هدم ونقل الأنقاض'}},
+ {id:'s-water',u:'m2',rate:1200,cat:'structure',n:{en:'Waterproofing',fr:'Étanchéité',ar:'العزل المائي'}},
+ {id:'s-elec',u:'u',rate:2500,cat:'electric',n:{en:'Electrical point (socket or switch)',fr:'Point électrique (prise ou interrupteur)',ar:'نقطة كهربائية (مأخذ أو مفتاح)'}},
+ {id:'s-plumb',u:'u',rate:4000,cat:'plumbing',n:{en:'Plumbing point',fr:'Point de plomberie',ar:'نقطة سباكة'}},
+ {id:'s-door',u:'u',rate:6000,cat:'structure',n:{en:'Door installation',fr:'Pose de porte',ar:'تركيب باب'}},
+ {id:'s-daily',u:'day',rate:3500,cat:'labour',n:{en:'Labour, per day',fr:'Main-d’œuvre à la journée',ar:'يومية عامل'}},
+ {id:'s-day',u:'h',rate:450,cat:'labour',n:{en:'Labour, per hour',fr:'Main-d’œuvre à l’heure',ar:'يد عاملة بالساعة'}}
+];
+
+const CURRENCIES=['DZD','EUR','USD','MAD','TND','SAR','AED','EGP','GBP','CAD'];
+const MODES=['rect','walls','circle','circ','tri','perim','seg','vol'];
+const S={lang:'en',settings:null,catalog:[],projects:[],cur:null,view:'estimate',calc:null,dbOk:true,focus:null,pick:null,collapsed:{},invDetail:true};
+let db=null;
+
+/* ---------- helpers ---------- */
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+const $=s=>document.querySelector(s);
+function t(k,v){let s=(I18N[S.lang]&&I18N[S.lang][k])||I18N.en[k]||k;if(v)for(const x in v)s=s.replace('{'+x+'}',v[x]);return s}
+const loc=()=>S.lang==='ar'?'ar-u-nu-latn':S.lang==='fr'?'fr-FR':'en-US';
+function amt(n){try{return new Intl.NumberFormat(loc(),{minimumFractionDigits:2,maximumFractionDigits:2}).format(n)}catch(e){return (+n).toFixed(2)}}
+function money(n){
+  if(S.lang==='ar')return amt(n)+' '+S.settings.currency;
+  try{return new Intl.NumberFormat(loc(),{style:'currency',currency:S.settings.currency}).format(n)}catch(e){return (+n).toFixed(2)}
+}
+function num(n,d){try{return new Intl.NumberFormat(loc(),{maximumFractionDigits:d==null?3:d}).format(n)}catch(e){return String(n)}}
+const fmtIn=n=>String(Math.round((+n||0)*1000)/1000);
+const unitLabel=u=>t('u_'+u);
+const svcName=s=>s.names[S.lang]||s.names.en||Object.values(s.names).find(Boolean)||'';
+const catLabel=c=>(I18N[S.lang]['cat_'+c])||c||'';
+function today(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+function fmtDate(s){try{return new Intl.DateTimeFormat(loc(),{dateStyle:'medium'}).format(new Date(s+'T00:00:00'))}catch(e){return s}}
+function h(tag,a,...kids){
+  const e=document.createElement(tag);let val;
+  if(a)for(const k in a){const v=a[k];if(v==null||v===false)continue;
+    if(k==='class')e.className=v;
+    else if(k.startsWith('on'))e.addEventListener(k.slice(2),v);
+    else if(k==='value')val=v;
+    else e.setAttribute(k,v===true?'':v);}
+  for(const c of kids.flat(Infinity)){if(c==null||c===false)continue;e.append(c.nodeType?c:document.createTextNode(c));}
+  if(val!==undefined)e.value=val;
+  return e;
+}
+const ICONS={
+ projects:'<path d="M3 7h6l2 2h10v10H3z"/>',
+ estimate:'<path d="M5 3h14v18H5z"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+ catalog:'<path d="M4 6h16M4 12h16M4 18h16"/>',
+ invoice:'<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/>',
+ settings:'<circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/>',
+ ruler:'<path d="M3 15L15 3l6 6L9 21z"/><path d="M7 11l2 2M10 8l2 2M13 5l2 2"/>',
+ x:'<path d="M6 6l12 12M18 6L6 18"/>'
+};
+function icon(n){const s=document.createElement('span');s.style.display='contents';s.innerHTML='<svg viewBox="0 0 24 24" aria-hidden="true">'+ICONS[n]+'</svg>';return s}
+function toast(m){const old=$('.toast');if(old)old.remove();const e=h('div',{class:'toast',role:'status'},m);document.body.append(e);setTimeout(()=>e.remove(),2200)}
+async function copyText(s){
+  try{await navigator.clipboard.writeText(s);return true}catch(e){
+    const ta=h('textarea',{style:'position:fixed;opacity:0;top:0'});ta.value=s;document.body.append(ta);ta.select();
+    let ok=false;try{ok=document.execCommand('copy')}catch(_){}ta.remove();return ok}
+}
+function confirmBtn(cls,label,fn){
+  const b=h('button',{class:cls,type:'button'},label);let armed=false,tm;
+  b.addEventListener('click',()=>{
+    if(!armed){armed=true;b.textContent=t('del_confirm');b.classList.add('armed');tm=setTimeout(()=>{armed=false;b.textContent=label;b.classList.remove('armed')},3000)}
+    else{clearTimeout(tm);fn()}});
+  return b;
+}
+
+/* ---------- IndexedDB ---------- */
+function openDB(){return new Promise((res,rej)=>{
+  const r=indexedDB.open('metre-db',1);
+  r.onupgradeneeded=()=>{const d=r.result;d.createObjectStore('projects',{keyPath:'id'});d.createObjectStore('catalog',{keyPath:'id'});d.createObjectStore('meta',{keyPath:'key'})};
+  r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);r.onblocked=()=>rej(new Error('blocked'));
+})}
+function tx(store,mode,fn){return new Promise((res,rej)=>{
+  const tr=db.transaction(store,mode);const out=fn(tr.objectStore(store));
+  tr.oncomplete=()=>res(out&&'result' in out?out.result:undefined);tr.onerror=()=>rej(tr.error);tr.onabort=()=>rej(tr.error);
+})}
+const dbAll=s=>tx(s,'readonly',st=>st.getAll());
+function dbFail(e){console.error(e);S.dbOk=false;render(true)}
+const dbPut=(s,o)=>S.dbOk&&db?tx(s,'readwrite',st=>st.put(o)).catch(dbFail):Promise.resolve();
+const dbDel=(s,id)=>S.dbOk&&db?tx(s,'readwrite',st=>st.delete(id)).catch(dbFail):Promise.resolve();
+const dbClear=s=>S.dbOk&&db?tx(s,'readwrite',st=>st.clear()).catch(dbFail):Promise.resolve();
+const timers={};
+function later(key,fn){clearTimeout(timers[key]);timers[key]=setTimeout(fn,300)}
+const touch=p=>{p.updated=Date.now();later('p'+p.id,()=>dbPut('projects',JSON.parse(JSON.stringify(p))))};
+const touchSvc=s=>later('s'+s.id,()=>dbPut('catalog',JSON.parse(JSON.stringify(s))));
+const saveSettings=()=>dbPut('meta',{key:'settings',value:JSON.parse(JSON.stringify(S.settings))});
+
+/* ---------- seed ---------- */
+function seedCatalog(){return SEED.map(s=>({id:s.id,names:Object.assign({},s.n),unit:s.u,rate:s.rate,cat:s.cat}))}
+function makeLine(sid,qty,lang){
+  const sd=SEED.find(x=>x.id===sid);return {id:uid(),sid,desc:sd.n[lang],unit:sd.u,qty,rate:sd.rate};
+}
+function seedProject(lang){
+  const T=k=>I18N[lang][k];
+  const L=(sid,q)=>makeLine(sid,q,lang);
+  const rn={en:['Living room','Kitchen','Bedroom','Bathroom'],fr:['Salon','Cuisine','Chambre','Salle de bain'],ar:['غرفة الجلوس','المطبخ','غرفة النوم','الحمّام']}[lang];
+  return {id:uid(),seq:1,example:true,name:T('sample_name'),client:T('sample_client'),address:'',date:today(),docType:'estimate',discount:0,notes:'',updated:Date.now(),
+    floors:[
+     {id:uid(),name:T('ground_floor'),rooms:[
+       {id:uid(),name:rn[0],items:[L('s-paint',46.5),L('s-ceil',21),L('s-ftile',21),L('s-skirt',18),L('s-elec',6)]},
+       {id:uid(),name:rn[1],items:[L('s-wtile',14),L('s-ftile',9.5),L('s-plumb',3),L('s-elec',5)]}]},
+     {id:uid(),name:T('floor_n').replace('{n}',1),rooms:[
+       {id:uid(),name:rn[2],items:[L('s-skim',38),L('s-paint',38),L('s-ceil',16)]},
+       {id:uid(),name:rn[3],items:[L('s-water',8),L('s-wtile',22),L('s-ftile',5),L('s-plumb',4)]}]}
+    ]};
+}
+function newProject(){
+  const seq=S.projects.reduce((m,p)=>Math.max(m,p.seq||0),0)+1;
+  return {id:uid(),seq,name:'',client:'',address:'',date:today(),docType:'estimate',discount:0,notes:'',updated:Date.now(),
+    floors:[{id:uid(),name:t('ground_floor'),rooms:[{id:uid(),name:t('room_n',{n:1}),items:[]}]}]};
+}
+
+/* ---------- state ---------- */
+const P=()=>S.projects.find(p=>p.id===S.cur);
+const docNo=p=>t(p.docType==='invoice'?'pre_inv':'pre_est')+'-'+(p.date||today()).slice(0,4)+'-'+String(p.seq||1).padStart(3,'0');
+const docTitle=p=>t(p.docType==='invoice'?'invoice':'estimate');
+const projName=p=>p.name||(p.example?t('sample_name'):'—');
+
+function applyLocale(){
+  ROOT.lang=S.lang;ROOT.dir=S.lang==='ar'?'rtl':'ltr';
+  const th=S.settings.theme;
+  if(th==='light'||th==='dark')ROOT.setAttribute('data-theme',th);
+  else if(HOST_THEME)ROOT.setAttribute('data-theme',HOST_THEME);else ROOT.removeAttribute('data-theme');
+  document.title='حسابي';
+}
+function setView(v){S.view=v;S.pick=null;render(false)}
+function render(keep){
+  const y=window.scrollY;applyLocale();
+  $('#app').replaceChildren(shell());
+  updateTotals();
+  window.scrollTo(0,keep?y:0);
+  if(S.focus){const el=$(S.focus);if(el){el.focus();if(el.select&&el.type!=='search')el.select()}S.focus=null}
+}
+function updateTotals(){
+  const p=P();if(!p)return;
+  const c=compute(p),m={sub:money(c.sub),disc:'− '+money(c.disc),net:money(c.net),tax:money(c.tax),grand:money(c.grand)};
+  c.floors.forEach((f,fi)=>{m['f:'+f.id]=money(f.sub);f.rooms.forEach((r,ri)=>{m['r:'+r.id]=money(r.sub);r.items.forEach((x,ii)=>{m['i:'+p.floors[fi].rooms[ri].items[ii].id]=money(x)})})});
+  document.querySelectorAll('[data-k]').forEach(el=>{const v=m[el.getAttribute('data-k')];if(v!==undefined)el.textContent=v});
+}
+
+/* ---------- shell ---------- */
+function shell(){
+  const nav=h('nav',{class:'nav','aria-label':'Main'},
+    h('div',{class:'brand'},h('b',{},'حسابي'),h('span',{},t('brand_sub')),h('div',{class:'tape','aria-hidden':'true'})),
+    ...['projects','estimate','catalog','invoice','settings'].map(v=>h('button',{class:'nbtn',type:'button','aria-current':S.view===v?'page':null,onclick:()=>setView(v)},icon(v),h('span',{},t('nav_'+v)))));
+  const titles={projects:t('nav_projects'),estimate:P()?projName(P()):t('nav_estimate'),catalog:t('catalog_title'),invoice:t('nav_invoice'),settings:t('settings_title')};
+  const top=h('div',{class:'topbar'},h('h1',{},titles[S.view]),
+    h('div',{class:'tools'},
+      h('div',{class:'seg',role:'group','aria-label':t('language')},
+        ...[['en','EN'],['fr','FR'],['ar','عربي']].map(([l,lab])=>h('button',{type:'button','aria-pressed':S.lang===l,onclick:()=>{S.lang=l;S.settings.lang=l;saveSettings();render(true)}},lab))),
+      h('button',{class:'btn ghost',type:'button',onclick:()=>openCalc(null)},icon('ruler'),t('calculators'))));
+  const views={projects:viewProjects,estimate:viewEstimate,catalog:viewCatalog,invoice:viewInvoice,settings:viewSettings};
+  return h('div',{class:'shell'},nav,h('main',{class:'main'},top,S.dbOk?null:h('div',{class:'banner',role:'alert'},t('storage_err')),views[S.view]()));
+}
+
+/* ---------- projects ---------- */
+function viewProjects(){
+  const list=S.projects.slice().sort((a,b)=>b.updated-a.updated);
+  return h('div',{class:'main'},
+    h('div',{},h('button',{class:'btn accent',type:'button',onclick:()=>{const p=newProject();S.projects.push(p);S.cur=p.id;touch(p);S.settings.last=p.id;saveSettings();S.focus='#pname';setView('estimate')}},'+ '+t('new_project'))),
+    list.length?h('div',{class:'pcards'},...list.map(p=>{
+      const c=compute(p);
+      return h('div',{class:'card pcard'},
+        h('div',{class:'row sb'},h('span',{class:'pill'+(p.docType==='invoice'?' inv':'')},docTitle(p)),p.example?h('span',{class:'pill'},t('example_tag')):null),
+        h('h3',{},projName(p)),
+        h('div',{class:'muted'},[p.client,fmtDate(p.date)].filter(Boolean).join(' · ')),
+        h('div',{class:'big'},money(c.grand)),
+        h('div',{class:'row'},
+          h('button',{class:'btn small',type:'button',onclick:()=>{S.cur=p.id;S.settings.last=p.id;saveSettings();setView('estimate')}},t('open')),
+          h('button',{class:'btn small ghost',type:'button',onclick:()=>{const q=JSON.parse(JSON.stringify(p));q.id=uid();q.example=false;q.seq=S.projects.reduce((m,x)=>Math.max(m,x.seq||0),0)+1;q.updated=Date.now();
+            q.floors.forEach(f=>{f.id=uid();f.rooms.forEach(r=>{r.id=uid();r.items.forEach(i=>i.id=uid())})});S.projects.push(q);touch(q);render(true)}},t('duplicate')),
+          confirmBtn('btn small danger',t('del'),()=>{S.projects=S.projects.filter(x=>x.id!==p.id);dbDel('projects',p.id);if(S.cur===p.id)S.cur=S.projects[0]?S.projects[0].id:null;render(true)})));
+    })):h('p',{class:'muted'},t('no_projects')));
+}
+
+/* ---------- estimate ---------- */
+function field(label,input){return h('label',{class:'f'},h('span',{},label),input)}
+function viewEstimate(){
+  const p=P();
+  if(!p)return h('div',{class:'card pad row'},h('p',{class:'muted'},t('no_project_sel')),h('button',{class:'btn',type:'button',onclick:()=>setView('projects')},t('go_projects')));
+  const head=h('div',{class:'card phead'},
+    h('div',{class:'row sb'},
+      h('div',{class:'seg',role:'group','aria-label':t('doc_type')},...['estimate','invoice'].map(d=>h('button',{type:'button','aria-pressed':p.docType===d,onclick:()=>{p.docType=d;touch(p);render(true)}},t(d)))),
+      h('div',{class:'gt'},h('span',{class:'lbl'},t('grand')),h('span',{class:'big','data-k':'grand'}))),
+    h('div',{class:'grid'},
+      field(t('project_name'),h('input',{type:'text',id:'pname',value:p.name,placeholder:p.example?t('sample_name'):'',oninput:e=>{p.name=e.target.value;touch(p)}})),
+      field(t('client'),h('input',{type:'text',value:p.client,oninput:e=>{p.client=e.target.value;touch(p)}})),
+      field(t('address'),h('input',{type:'text',value:p.address,oninput:e=>{p.address=e.target.value;touch(p)}})),
+      field(t('date'),h('input',{type:'date',value:p.date,onchange:e=>{p.date=e.target.value||today();touch(p)}})),
+      field(t('number')+' ('+docNo(p)+')',h('input',{type:'text',inputmode:'numeric',class:'num',dir:'ltr',value:String(p.seq||1),oninput:e=>{p.seq=Math.max(1,Math.round(pn(e.target.value))||1);touch(p)},onchange:()=>render(true)}))));
+  const floors=p.floors.map((f,fi)=>floorBlock(p,f,fi));
+  const totals=h('div',{class:'card totals'},
+    trow(t('subtotal'),null,h('span',{class:'v','data-k':'sub'})),
+    trow(t('discount'),numInput(p.discount,v=>{p.discount=v;touch(p);updateTotals()}),h('span',{class:'v','data-k':'disc'})),
+    h('div',{class:'tape','aria-hidden':'true'}),
+    h('div',{class:'trow grand'},h('span',{},t('grand')),h('span'),h('span',{class:'v','data-k':'grand'})));
+  return h('div',{class:'main'},head,...floors,
+    h('div',{},h('button',{class:'btn ghost',type:'button',onclick:()=>{p.floors.push({id:uid(),name:t('floor_n',{n:p.floors.length}),rooms:[{id:uid(),name:t('room_n',{n:1}),items:[]}]});touch(p);render(true)}},'+ '+t('add_floor'))),
+    field(t('notes'),h('textarea',{oninput:e=>{p.notes=e.target.value;touch(p)}},p.notes||'')),
+    totals);
+}
+function trow(label,input,val){return h('div',{class:'trow'},h('span',{},label),input||h('span'),val)}
+function numInput(v,fn){return h('input',{type:'text',inputmode:'decimal',class:'num',dir:'ltr',value:fmtIn(v),'aria-label':'%',oninput:e=>fn(pn(e.target.value))})}
+
+function floorBlock(p,f,fi){
+  const col=!!S.collapsed[f.id];
+  const head=h('div',{class:'fhead'},
+    h('input',{type:'text',class:'title','aria-label':t('floor'),value:f.name,oninput:e=>{f.name=e.target.value;touch(p)}}),
+    h('span',{class:'muted'},t('floor_sub')),h('span',{class:'sub','data-k':'f:'+f.id}),
+    h('button',{class:'btn small ghost',type:'button','aria-expanded':!col,onclick:()=>{S.collapsed[f.id]=!col;render(true)}},col?'+':'−'),
+    p.floors.length>1?confirmBtn('btn small danger',t('del'),()=>{p.floors=p.floors.filter(x=>x.id!==f.id);touch(p);render(true)}):null);
+  if(col)return h('section',{class:'card floor'},head);
+  return h('section',{class:'card floor'},head,
+    h('div',{class:'rooms'},...f.rooms.map(r=>roomBlock(p,f,r))),
+    h('div',{class:'floorfoot'},h('button',{class:'btn small ghost',type:'button',onclick:()=>{const r={id:uid(),name:t('room_n',{n:f.rooms.length+1}),items:[]};f.rooms.push(r);touch(p);S.focus='[data-room="'+r.id+'"]';render(true)}},'+ '+t('add_room'))));
+}
+function roomBlock(p,f,r){
+  const rhead=h('div',{class:'rhead'},
+    h('input',{type:'text',class:'title','data-room':r.id,'aria-label':t('room'),value:r.name,oninput:e=>{r.name=e.target.value;touch(p)}}),
+    h('span',{class:'muted'},t('room_sub')),h('span',{class:'sub','data-k':'r:'+r.id}),
+    f.rooms.length>1?confirmBtn('btn small danger',t('del'),()=>{f.rooms=f.rooms.filter(x=>x.id!==r.id);touch(p);render(true)}):null);
+  const lines=r.items.length?[
+    h('div',{class:'linehead','aria-hidden':'true'},h('span',{},t('description')),h('span',{},t('qty')),h('span',{},t('unit')),h('span',{},t('rate')),h('span',{},t('amount')),h('span')),
+    ...r.items.map(it=>itemRow(p,r,it))]:[h('div',{class:'empty'},t('empty_room'))];
+  return h('div',{class:'room'},rhead,...lines,
+    h('div',{class:'ractions'},
+      h('button',{class:'btn small',type:'button','aria-expanded':S.pick===r.id,onclick:()=>{S.pick=S.pick===r.id?null:r.id;S.focus='#pickq';render(true)}},'+ '+t('from_catalog')),
+      h('button',{class:'btn small ghost',type:'button',onclick:()=>{const it={id:uid(),sid:null,desc:'',unit:'u',qty:1,rate:0};r.items.push(it);touch(p);S.focus='[data-desc="'+it.id+'"]';render(true)}},'+ '+t('custom_line'))),
+    S.pick===r.id?pickPanel(p,r):null);
+}
+function itemRow(p,r,it){
+  return h('div',{class:'line'},
+    h('label',{class:'c-desc'},h('span',{class:'lbl'},t('description')),h('input',{type:'text','data-desc':it.id,value:it.desc,oninput:e=>{it.desc=e.target.value;touch(p)}})),
+    h('div',{class:'c-qty'},h('span',{class:'lbl'},t('qty')),
+      h('div',{class:'qtybox'},
+        h('input',{type:'text',inputmode:'decimal',class:'num',dir:'ltr','data-qty':it.id,'aria-label':t('qty'),value:fmtIn(it.qty),oninput:e=>{it.qty=pn(e.target.value);touch(p);updateTotals()}}),
+        h('button',{class:'icon',type:'button',title:t('calculators'),'aria-label':t('calculators'),onclick:()=>openCalc(it.id)},icon('ruler')))),
+    h('label',{class:'c-unit'},h('span',{class:'lbl'},t('unit')),
+      h('select',{value:it.unit,onchange:e=>{it.unit=e.target.value;touch(p)}},...UNITS.map(u=>h('option',{value:u},unitLabel(u))))),
+    h('label',{class:'c-rate'},h('span',{class:'lbl'},t('rate')),h('input',{type:'text',inputmode:'decimal',class:'num',dir:'ltr',value:fmtIn(it.rate),oninput:e=>{it.rate=pn(e.target.value);touch(p);updateTotals()}})),
+    h('div',{class:'c-tot'},h('span',{class:'lbl'},t('amount')),h('span',{class:'mono','data-k':'i:'+it.id})),
+    h('div',{class:'c-del'},h('button',{class:'icon',type:'button','aria-label':t('del'),title:t('del'),onclick:()=>{r.items=r.items.filter(x=>x.id!==it.id);touch(p);render(true)}},icon('x'))));
+}
+function pickPanel(p,room){
+  const list=h('div',{class:'picklist'});
+  const fill=q=>{
+    list.replaceChildren();const ql=q.toLowerCase();
+    const m=S.catalog.filter(s=>(svcName(s)+' '+catLabel(s.cat)).toLowerCase().includes(ql));
+    if(!m.length)list.append(h('p',{class:'muted',style:'padding:10px 12px'},S.catalog.length?t('no_match'):t('no_services')));
+    m.forEach(s=>list.append(h('button',{type:'button',class:'pick',onclick:()=>{
+      const it={id:uid(),sid:s.id,desc:svcName(s),unit:s.unit,qty:1,rate:s.rate};room.items.push(it);touch(p);S.focus='[data-qty="'+it.id+'"]';render(true)}},
+      h('span',{},svcName(s)),h('span',{class:'mono muted'},money(s.rate)+' / '+unitLabel(s.unit)))));
+  };
+  fill('');
+  return h('div',{class:'pickpanel'},h('input',{type:'search',id:'pickq',placeholder:t('search_services'),'aria-label':t('search_services'),oninput:e=>fill(e.target.value)}),list);
+}
+
+/* ---------- catalog ---------- */
+function viewCatalog(){
+  const rows=h('div');
+  const build=()=>{
+    rows.replaceChildren();
+    const sorted=S.catalog.slice().sort((a,b)=>catLabel(a.cat).localeCompare(catLabel(b.cat),loc())||svcName(a).localeCompare(svcName(b),loc()));
+    if(!sorted.length)rows.append(h('p',{class:'empty'},t('no_services')));
+    sorted.forEach(s=>{
+      rows.append(h('div',{class:'crow','data-s':(svcName(s)+' '+catLabel(s.cat)).toLowerCase()},
+        h('label',{class:'f cn'},h('span',{class:'lbl'},t('service_name')),h('input',{type:'text','data-svc':s.id,value:svcName(s),oninput:e=>{s.names[S.lang]=e.target.value;touchSvc(s)}})),
+        h('label',{class:'f'},h('span',{class:'lbl'},t('category')),h('input',{type:'text',value:catLabel(s.cat),oninput:e=>{s.cat=e.target.value;touchSvc(s)}})),
+        h('label',{class:'f'},h('span',{class:'lbl'},t('unit')),h('select',{value:s.unit,onchange:e=>{s.unit=e.target.value;touchSvc(s)}},...UNITS.map(u=>h('option',{value:u},unitLabel(u))))),
+        h('label',{class:'f'},h('span',{class:'lbl'},t('rate')),h('input',{type:'text',inputmode:'decimal',class:'num',dir:'ltr',value:fmtIn(s.rate),oninput:e=>{s.rate=pn(e.target.value);touchSvc(s)}})),
+        h('div',{class:'cd'},h('button',{class:'icon',type:'button','aria-label':t('del'),title:t('del'),onclick:()=>{S.catalog=S.catalog.filter(x=>x.id!==s.id);dbDel('catalog',s.id);render(true)}},icon('x')))));
+    });
+  };
+  build();
+  const q=h('input',{type:'search',placeholder:t('search_services'),'aria-label':t('search_services'),oninput:e=>{const v=e.target.value.toLowerCase();rows.querySelectorAll('.crow').forEach(r=>{r.hidden=!r.getAttribute('data-s').includes(v)})}});
+  return h('div',{class:'main'},
+    h('div',{class:'row'},h('button',{class:'btn accent',type:'button',onclick:()=>{const s={id:uid(),names:{[S.lang]:''},unit:'m2',rate:0,cat:''};S.catalog.push(s);touchSvc(s);S.focus='[data-svc="'+s.id+'"]';render(true)}},'+ '+t('new_service')),h('div',{style:'flex:1 1 200px'},q)),
+    h('p',{class:'hint'},t('catalog_hint')),
+    h('div',{class:'card'},
+      h('div',{class:'crow chead'},h('span',{},t('service_name')),h('span',{},t('category')),h('span',{},t('unit')),h('span',{},t('rate')),h('span')),
+      rows));
+}
+
+/* ---------- calculators ---------- */
+function openCalc(target){
+  S.calc={mode:(S.calc&&S.calc.mode)||'rect',vals:{},waste:0,count:1,target};
+  renderCalc();
+}
+function closeCalc(){const m=$('#calcModal');if(m)m.remove();document.removeEventListener('keydown',calcKey)}
+function calcKey(e){if(e.key==='Escape')closeCalc()}
+function calcOut(){const c=S.calc;return calcResult(c.mode,c.vals[c.mode]||{},c.waste,c.count)}
+function updateCalcResult(){const r=calcOut(),el=$('#calcRes');if(el)el.textContent=num(r.value,3)}
+function renderCalc(){
+  closeCalc();const c=S.calc;c.vals[c.mode]=c.vals[c.mode]||{};
+  const r=calcOut();
+  const fields=CALC_FIELDS[c.mode].map(k=>{
+    const label=(k==='h'&&c.mode==='tri')?t('f_h'):t('f_'+k);
+    const isTxt=k==='s';
+    return field(label,h('input',{type:'text',id:'cf-'+k,inputmode:isTxt?'text':'decimal',class:isTxt?'':'num',dir:'ltr',value:c.vals[c.mode][k]||'',oninput:e=>{c.vals[c.mode][k]=e.target.value;updateCalcResult()}}));
+  });
+  const modal=h('div',{class:'modal',id:'calcModal',role:'dialog','aria-modal':'true','aria-label':t('calc_title'),onclick:e=>{if(e.target.id==='calcModal')closeCalc()}},
+    h('div',{class:'panel'},
+      h('h2',{},t('calc_title')),
+      field(t('mode'),h('select',{id:'cmode',value:c.mode,onchange:e=>{c.mode=e.target.value;renderCalc()}},...MODES.map(m=>h('option',{value:m},t('m_'+m))))),
+      h('div',{class:'grid'},...fields),
+      c.mode==='walls'?h('p',{class:'hint'},t('walls_hint')):null,
+      h('div',{class:'grid'},
+        field(t('waste'),h('input',{type:'text',inputmode:'decimal',class:'num',dir:'ltr',value:c.waste||'',placeholder:'0',oninput:e=>{c.waste=e.target.value;updateCalcResult()}})),
+        field(t('times'),h('input',{type:'text',inputmode:'decimal',class:'num',dir:'ltr',value:String(c.count),oninput:e=>{c.count=e.target.value;updateCalcResult()}}))),
+      h('div',{class:'result'},h('span',{},t('result')),h('span',{},h('b',{id:'calcRes'},num(r.value,3)),' ',h('span',{},unitLabel(r.unit)))),
+      h('div',{class:'row'},
+        c.target?h('button',{class:'btn accent',type:'button',onclick:applyCalc},t('use_qty')):null,
+        h('button',{class:'btn ghost',type:'button',onclick:async()=>{toast(await copyText(String(calcOut().value))?t('copied'):'—')}},t('copy')),
+        h('button',{class:'btn ghost',type:'button',onclick:closeCalc},t('close')))));
+  document.body.append(modal);document.addEventListener('keydown',calcKey);
+  const first=modal.querySelector('input');if(first)first.focus();
+}
+function applyCalc(){
+  const p=P(),r=calcOut();if(!p)return;
+  for(const f of p.floors)for(const ro of f.rooms)for(const it of ro.items){
+    if(it.id===S.calc.target){it.qty=r.value;it.unit=r.unit;touch(p)}}
+  closeCalc();render(true);
+}
+
+/* ---------- invoice ---------- */
+function viewInvoice(){
+  const p=P();
+  if(!p)return h('div',{class:'card pad row'},h('p',{class:'muted'},t('no_project_sel')),h('button',{class:'btn',type:'button',onclick:()=>setView('projects')},t('go_projects')));
+  const c=compute(p),st=S.settings;const rows=[];
+  p.floors.forEach((f,fi)=>{
+    const cf=c.floors[fi];if(!f.rooms.some(r=>r.items.length))return;
+    rows.push(h('tr',{class:'fl'},h('td',{colspan:'5'},f.name)));
+    f.rooms.forEach((r,ri)=>{
+      if(!r.items.length)return;const cr=cf.rooms[ri];
+      if(S.invDetail){
+        rows.push(h('tr',{class:'rm'},h('td',{colspan:'5'},r.name)));
+        r.items.forEach((it,ii)=>rows.push(h('tr',{},h('td',{},it.desc),h('td',{class:'r'},num(pn(it.qty),3)),h('td',{class:'u'},unitLabel(it.unit)),h('td',{class:'r'},amt(pn(it.rate))),h('td',{class:'r'},amt(cr.items[ii])))));
+        rows.push(h('tr',{class:'st'},h('td',{colspan:'4'},t('room_sub')+' · '+r.name),h('td',{class:'r'},amt(cr.sub))));
+      }else rows.push(h('tr',{},h('td',{colspan:'4'},r.name),h('td',{class:'r'},amt(cr.sub))));
+    });
+    rows.push(h('tr',{class:'fs'},h('td',{colspan:'4'},t('floor_sub')+' · '+f.name),h('td',{class:'r'},amt(cf.sub))));
+  });
+  const sheet=h('article',{class:'sheet'},
+    h('div',{class:'shead'},
+      h('div',{},h('h2',{},docTitle(p)),h('dl',{class:'meta'},h('dt',{},t('number')),h('dd',{},docNo(p)),h('dt',{},t('date')),h('dd',{},fmtDate(p.date)))),
+      h('div',{},h('b',{},st.business||'—'),h('div',{class:'mute pre'},st.info||''))),
+    h('div',{class:'tape','aria-hidden':'true'}),
+    h('div',{class:'shead'},
+      h('div',{},h('div',{class:'mute'},t('bill_to')),h('b',{},p.client||'—')),
+      h('div',{},h('div',{class:'mute'},t('site')),h('b',{},projName(p)),h('div',{class:'mute'},p.address||''))),
+    h('div',{class:'twrap'},h('table',{class:'inv'},
+      h('thead',{},h('tr',{},h('th',{},t('description')),h('th',{class:'r'},t('qty')),h('th',{},t('unit')),h('th',{class:'r'},t('rate')+' ('+st.currency+')'),h('th',{class:'r'},t('amount')+' ('+st.currency+')'))),
+      h('tbody',{},...rows))),
+    h('div',{class:'itotals'},
+      h('div',{},h('span',{},t('subtotal')),h('span',{},amt(c.sub)+' '+st.currency)),
+      pn(p.discount)?h('div',{},h('span',{},t('discount')+' '+num(pn(p.discount),2)+'%'),h('span',{},'− '+amt(c.disc)+' '+st.currency)):null,
+      h('div',{class:'g'},h('span',{},t('grand')),h('span',{},amt(c.grand)+' '+st.currency))),
+    p.notes?h('p',{class:'terms pre'},p.notes):null,
+    p.docType==='invoice'&&st.terms?h('p',{class:'terms pre'},st.terms):null);
+  return h('div',{class:'main'},
+    h('div',{class:'row noprint'},
+      h('div',{class:'seg',role:'group'},h('button',{type:'button','aria-pressed':S.invDetail,onclick:()=>{S.invDetail=true;render(true)}},t('detailed')),h('button',{type:'button','aria-pressed':!S.invDetail,onclick:()=>{S.invDetail=false;render(true)}},t('rooms_only'))),
+      h('button',{class:'btn ghost',type:'button',onclick:async()=>{toast(await copyText(invoiceText(p))?t('copied'):'—')}},t('copy_text')),
+      FRAMED?null:h('button',{class:'btn',type:'button',onclick:()=>window.print()},t('print'))),
+    sheet);
+}
+function invoiceText(p){
+  const c=compute(p),st=S.settings,L=[];
+  L.push(docTitle(p).toUpperCase()+' '+docNo(p),fmtDate(p.date));
+  if(st.business)L.push(st.business);
+  L.push('',t('bill_to')+': '+(p.client||'—'),t('site')+': '+projName(p)+(p.address?' ('+p.address+')':''),'');
+  p.floors.forEach((f,fi)=>{
+    if(!f.rooms.some(r=>r.items.length))return;
+    L.push('== '+f.name+' ==');
+    f.rooms.forEach((r,ri)=>{
+      if(!r.items.length)return;L.push('# '+r.name);
+      if(S.invDetail)r.items.forEach((it,ii)=>L.push('  '+it.desc+' | '+num(pn(it.qty),3)+' '+unitLabel(it.unit)+' x '+money(pn(it.rate))+' = '+money(c.floors[fi].rooms[ri].items[ii])));
+      L.push('  '+t('room_sub')+': '+money(c.floors[fi].rooms[ri].sub));
+    });
+    L.push(t('floor_sub')+': '+money(c.floors[fi].sub),'');
+  });
+  L.push(t('subtotal')+': '+money(c.sub));
+  if(pn(p.discount))L.push(t('discount')+' '+pn(p.discount)+'%: -'+money(c.disc));
+  L.push(t('grand')+': '+money(c.grand));
+  return L.join('\n');
+}
+
+/* ---------- settings ---------- */
+function viewSettings(){
+  const st=S.settings;
+  const paste=h('textarea',{id:'pastebox','aria-label':t('import_paste'),placeholder:t('import_paste')});
+  return h('div',{class:'main'},
+    h('div',{class:'card sect'},h('h3',{},t('business')),
+      h('div',{class:'grid'},
+        field(t('business_name'),h('input',{type:'text',value:st.business,oninput:e=>{st.business=e.target.value;saveSettings()}})),
+        field(t('business_info'),h('textarea',{oninput:e=>{st.info=e.target.value;saveSettings()}},st.info||''))),
+      field(t('terms'),h('textarea',{oninput:e=>{st.terms=e.target.value;saveSettings()}},st.terms||''))),
+    h('div',{class:'card sect'},h('h3',{},t('currency')+' · '+t('language')),
+      h('div',{class:'grid'},
+        field(t('currency'),h('select',{value:st.currency,onchange:e=>{st.currency=e.target.value;saveSettings();render(true)}},...CURRENCIES.map(c=>h('option',{value:c},c)))),
+        field(t('language'),h('select',{value:S.lang,onchange:e=>{S.lang=e.target.value;st.lang=S.lang;saveSettings();render(true)}},h('option',{value:'en'},'English'),h('option',{value:'fr'},'Français'),h('option',{value:'ar'},'العربية'))),
+        field(t('theme'),h('select',{value:st.theme,onchange:e=>{st.theme=e.target.value;saveSettings();render(true)}},h('option',{value:'auto'},t('theme_auto')),h('option',{value:'light'},t('theme_light')),h('option',{value:'dark'},t('theme_dark'))))),
+      h('p',{class:'hint'},t('currency_hint'))),
+    h('div',{class:'card sect'},h('h3',{},t('backup')),h('p',{class:'hint'},t('backup_hint')),
+      h('div',{class:'row'},
+        h('button',{class:'btn',type:'button',onclick:exportData},t('export_json')),
+        h('label',{class:'btn ghost',style:'cursor:pointer'},t('import_json'),h('input',{type:'file',accept:'.json,application/json',style:'display:none',onchange:async e=>{const f=e.target.files[0];if(f)importData(await f.text())}})),
+        confirmBtn('btn danger',t('reset'),resetAll)),
+      FRAMED?h('div',{class:'row'},h('div',{style:'flex:1 1 260px'},paste),h('button',{class:'btn ghost',type:'button',onclick:()=>importData(paste.value)},t('import_btn'))):null));
+}
+function snapshot(){return JSON.stringify({app:'metre',v:1,settings:S.settings,catalog:S.catalog,projects:S.projects})}
+async function exportData(){
+  const data=snapshot();
+  if(FRAMED){toast(await copyText(data)?t('export_copied'):'—');return}
+  const a=h('a',{href:URL.createObjectURL(new Blob([data],{type:'application/json'})),download:'metre-backup-'+today()+'.json'});
+  document.body.append(a);a.click();a.remove();
+}
+async function importData(txt){
+  try{
+    const d=JSON.parse(txt);if(!d||d.app!=='metre'||!Array.isArray(d.projects)||!Array.isArray(d.catalog))throw new Error('bad');
+    await dbClear('projects');await dbClear('catalog');
+    S.projects=d.projects;S.catalog=d.catalog;
+    if(d.settings)S.settings=Object.assign(S.settings,d.settings);
+    await Promise.all([...S.projects.map(p=>dbPut('projects',p)),...S.catalog.map(s=>dbPut('catalog',s)),saveSettings()]);
+    S.lang=S.settings.lang||S.lang;S.cur=S.projects[0]?S.projects[0].id:null;S.view='projects';render(false);toast(t('import_ok'));
+  }catch(e){toast(t('import_err'))}
+}
+async function resetAll(){
+  await Promise.all([dbClear('projects'),dbClear('catalog')]);
+  S.catalog=seedCatalog();const sp=seedProject(S.lang);S.projects=[sp];S.cur=sp.id;
+  await Promise.all([...S.catalog.map(s=>dbPut('catalog',s)),dbPut('projects',sp)]);
+  S.view='projects';render(false);
+}
+
+/* ---------- init ---------- */
+async function init(){
+  const nav=(navigator.language||'en').slice(0,2);
+  const defaults={lang:I18N[nav]?nav:'en',theme:'auto',currency:'DZD',tax:0,business:'',info:'',terms:I18N[I18N[nav]?nav:'en'].terms_default,last:null};
+  S.settings=Object.assign({},defaults);
+  try{db=await openDB()}catch(e){S.dbOk=false}
+  let seeded=false;
+  if(S.dbOk){
+    try{
+      const meta=await dbAll('meta');const m=meta.find(x=>x.key==='settings');
+      if(m)Object.assign(S.settings,m.value);
+      S.catalog=await dbAll('catalog');S.projects=await dbAll('projects');
+      seeded=!!m;
+      const old=S.catalog.find(s=>s.id==='s-day');
+      if(old&&old.unit==='day'&&old.rate===3500){
+        const nw=SEED.find(x=>x.id==='s-day');
+        old.unit='h';old.rate=nw.rate;old.names=Object.assign({},nw.n);await dbPut('catalog',old);
+      }
+      if(m&&!S.settings.dailyAdded){
+        S.settings.dailyAdded=true;
+        if(!S.catalog.some(s=>s.id==='s-daily')){
+          const dd=SEED.find(x=>x.id==='s-daily');
+          const ns={id:dd.id,names:Object.assign({},dd.n),unit:dd.u,rate:dd.rate,cat:dd.cat};
+          S.catalog.push(ns);await dbPut('catalog',ns);
+        }
+        await saveSettings();
+      }
+    }catch(e){S.dbOk=false}
+  }
+  S.lang=S.settings.lang;
+  if(!seeded){
+    S.catalog=seedCatalog();const sp=seedProject(S.lang);S.projects=[sp];
+    if(S.dbOk)await Promise.all([...S.catalog.map(s=>dbPut('catalog',s)),dbPut('projects',sp),saveSettings()]);
+  }
+  const last=S.projects.find(p=>p.id===S.settings.last);
+  S.cur=last?last.id:(S.projects[0]?S.projects[0].id:null);
+  S.view=S.cur?'estimate':'projects';
+  render(false);
+}
+init();
+})();
+</script>
+<script>
+if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+  window.addEventListener('load', function () { navigator.serviceWorker.register('sw.js').catch(function () {}); });
+}
+</script>
+</body>
+</html>
