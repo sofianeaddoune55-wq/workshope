@@ -1,3 +1,4 @@
+/* Service worker: makes the app installable and usable offline. */
 const CACHE = 'hisabi-v2';
 const PRECACHE = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png'];
  
